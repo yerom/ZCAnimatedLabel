@@ -168,24 +168,26 @@
     }
     
     [self.layoutTool layoutWithAttributedString:self.attributedString constainedToSize:self.frame.size];
-    __block CGFloat maxDuration = 0;
+    //__block CGFloat maxDuration = 0;
+    [self calculateAnimationDuration];
+    
     [self.layoutTool.textBlocks enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
         ZCTextBlock *textBlock = obj;
         [self textBlockAttributesInit:textBlock];
         
-        CGFloat duration = textBlock.duration > 0 ? textBlock.duration : self.animationDuration;
-        CGFloat startDelay = textBlock.startDelay > 0 ? textBlock.startDelay : idx * self.animationDelay;
-        CGFloat realStartDelay = startDelay + duration;
-        if (realStartDelay > maxDuration) {
-            maxDuration = realStartDelay;
-        }
+//        CGFloat duration = textBlock.duration > 0 ? textBlock.duration : self.animationDuration;
+//        CGFloat startDelay = textBlock.startDelay > 0 ? textBlock.startDelay : idx * self.animationDelay;
+//        CGFloat realStartDelay = startDelay + duration;
+//        if (realStartDelay > maxDuration) {
+//            maxDuration = realStartDelay;
+//        }
 
         if (self.layerBased) {
             [self.layer addSublayer:textBlock.textBlockLayer];
         }
     }];
     
-    self.animationDurationTotal = maxDuration;
+    //self.animationDurationTotal = maxDuration;
     
     if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 6.0) {
         [self invalidateIntrinsicContentSize]; //reset intrinsicContentSize
@@ -262,6 +264,41 @@
     [self setNeedsDisplay];
 }
 
+- (void)setAnimationDuration:(CGFloat)animationDuration
+{
+    _animationDuration = animationDuration;
+    [self calculateAnimationDuration];
+}
+
+- (void)setAnimationDelay:(CGFloat)animationDelay
+{
+    _animationDelay = animationDelay;
+    [self calculateAnimationDuration];
+}
+
+- (void)setAnimationTime:(NSTimeInterval)animationTime
+{
+    _animationTime = animationTime;
+    [self calculateAnimationDuration];
+}
+
+- (void)calculateAnimationDuration
+{
+    __block CGFloat maxDuration = 0;
+    [self.layoutTool.textBlocks enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+        ZCTextBlock *textBlock = obj;
+        [self textBlockAttributesInit:textBlock];
+        
+        CGFloat duration = textBlock.duration > 0 ? textBlock.duration : self.animationDuration;
+        CGFloat startDelay = textBlock.startDelay > 0 ? textBlock.startDelay : idx * self.animationDelay;
+        CGFloat realStartDelay = startDelay + duration;
+        if (realStartDelay > maxDuration) {
+            maxDuration = realStartDelay;
+        }
+    }];
+    
+    self.animationDurationTotal = maxDuration;
+}
 
 - (void) startAppearAnimation
 {
