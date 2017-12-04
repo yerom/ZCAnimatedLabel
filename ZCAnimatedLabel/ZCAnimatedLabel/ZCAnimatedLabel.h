@@ -92,8 +92,10 @@ typedef NS_ENUM(NSInteger, ZCAnimatedLabelAppearDirection)
 - (void) sizeToFit;
 
 - (void) startAppearAnimation;
+- (void) startAppearAnimationWithCompletion:(void (^)())completion;
 
 - (void) startDisappearAnimation;
+- (void) startDisappearAnimationWithCompletion:(void (^)())completion;
 
 - (void) stopAnimation;
 

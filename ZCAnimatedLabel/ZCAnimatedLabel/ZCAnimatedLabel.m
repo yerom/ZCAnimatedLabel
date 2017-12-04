@@ -19,6 +19,7 @@
 @property (nonatomic, assign) BOOL animatingAppear; //we are during appear stage or not
 @property (nonatomic, strong) ZCCoreTextLayout *layoutTool;
 @property (nonatomic, assign) NSTimeInterval animationStarTime;
+@property (nonatomic, copy) void (^completion)();
 
 @end
 
@@ -50,7 +51,7 @@
 - (void) commonInit
 {
     self.backgroundColor = [UIColor clearColor];
-
+    
     _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(timerTick:)];
     [_displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
     _displayLink.paused = YES;
@@ -84,6 +85,10 @@
     if (self.animationTime > self.animationDurationTotal) {
         self.displayLink.paused = YES;
         self.useDefaultDrawing = YES;
+        if (_completion) {
+            self.completion();
+            _completion = nil;
+        }
     }
     else { //update text attributeds array
         
@@ -175,13 +180,13 @@
         ZCTextBlock *textBlock = obj;
         [self textBlockAttributesInit:textBlock];
         
-//        CGFloat duration = textBlock.duration > 0 ? textBlock.duration : self.animationDuration;
-//        CGFloat startDelay = textBlock.startDelay > 0 ? textBlock.startDelay : idx * self.animationDelay;
-//        CGFloat realStartDelay = startDelay + duration;
-//        if (realStartDelay > maxDuration) {
-//            maxDuration = realStartDelay;
-//        }
-
+        //        CGFloat duration = textBlock.duration > 0 ? textBlock.duration : self.animationDuration;
+        //        CGFloat startDelay = textBlock.startDelay > 0 ? textBlock.startDelay : idx * self.animationDelay;
+        //        CGFloat realStartDelay = startDelay + duration;
+        //        if (realStartDelay > maxDuration) {
+        //            maxDuration = realStartDelay;
+        //        }
+        
         if (self.layerBased) {
             [self.layer addSublayer:textBlock.textBlockLayer];
         }
@@ -249,7 +254,7 @@
 {
     _text = text;
     [self _layoutForChangedString];
-    [self setNeedsDisplay];    
+    [self setNeedsDisplay];
 }
 
 - (void) setTextColor:(UIColor *)textColor
@@ -263,24 +268,24 @@
     _useDefaultDrawing = useDefaultDrawing;
     [self setNeedsDisplay];
 }
-
-- (void)setAnimationDuration:(CGFloat)animationDuration
-{
-    _animationDuration = animationDuration;
-    [self calculateAnimationDuration];
-}
-
-- (void)setAnimationDelay:(CGFloat)animationDelay
-{
-    _animationDelay = animationDelay;
-    [self calculateAnimationDuration];
-}
-
-- (void)setAnimationTime:(NSTimeInterval)animationTime
-{
-    _animationTime = animationTime;
-    [self calculateAnimationDuration];
-}
+//
+//- (void)setAnimationDuration:(CGFloat)animationDuration
+//{
+//    _animationDuration = animationDuration;
+//    [self calculateAnimationDuration];
+//}
+//
+//- (void)setAnimationDelay:(CGFloat)animationDelay
+//{
+//    _animationDelay = animationDelay;
+//    [self calculateAnimationDuration];
+//}
+//
+//- (void)setAnimationTime:(NSTimeInterval)animationTime
+//{
+//    _animationTime = animationTime;
+//    [self calculateAnimationDuration];
+//}
 
 - (void)calculateAnimationDuration
 {
@@ -302,21 +307,35 @@
 
 - (void) startAppearAnimation
 {
+    [self startAppearAnimationWithCompletion:nil];
+}
+
+- (void) startAppearAnimationWithCompletion:(void (^)())completion
+{
     self.animatingAppear = YES;
     self.animationTime = 0;
     self.useDefaultDrawing = NO;
     self.displayLink.paused = NO;
     self.animationStarTime = 0;
+    
+    _completion = completion;
     [self setNeedsDisplay];
 }
 
 - (void) startDisappearAnimation
+{
+    [self startDisappearAnimationWithCompletion:nil];
+}
+
+- (void)startDisappearAnimationWithCompletion:(void (^)())completion
 {
     self.animatingAppear = NO;
     self.animationTime = 0;
     self.useDefaultDrawing = NO;
     self.displayLink.paused = NO;
     self.animationStarTime = 0;
+    
+    _completion = completion;
     [self setNeedsDisplay]; //draw all rects
 }
 
@@ -360,7 +379,7 @@
 {
     CGFloat realProgress = [ZCEasingUtil bounceWithStiffness:0.01 numberOfBounces:1 time:textBlock.progress shake:NO shouldOvershoot:NO];
     if (textBlock.progress <= 0.0f) {
-        return; 
+        return;
     }
     CGContextRef context = UIGraphicsGetCurrentContext();
     CGContextSaveGState(context);
@@ -405,7 +424,7 @@
     if (self.layerBased) {
         return;
     }
-
+    
     if (self.debugRedraw) {
         CGContextRef context = UIGraphicsGetCurrentContext();
         CGFloat hue = ( arc4random() % 256 / 256.0 );
@@ -413,14 +432,14 @@
         CGFloat brightness = ( arc4random() % 128 / 256.0 ) + 0.5;
         UIColor *color = [UIColor colorWithHue:hue saturation:saturation brightness:brightness alpha:1];
         CGContextSetFillColorWithColor(context, color.CGColor);
-        CGContextFillRect(context, rect);        
+        CGContextFillRect(context, rect);
     }
     
     for (ZCTextBlock *textBlock in self.layoutTool.textBlocks) {
         if (!CGRectIntersectsRect(rect, textBlock.charRect)) {
             continue; //skip this text redraw
         }
-
+        
         if (self.debugTextBlockBounds) {
             CGContextRef context = UIGraphicsGetCurrentContext();
             CGContextSetStrokeColorWithColor(context, [UIColor redColor].CGColor);
@@ -431,7 +450,7 @@
         if (self.useDefaultDrawing) {
             if (self.animatingAppear) {
                 [textBlock.derivedAttributedString drawInRect:textBlock.charRect];
-            }            
+            }
         }
         else {
             if (self.animatingAppear) {
@@ -442,7 +461,7 @@
             }
         }
     }
-
+    
     if (self.useDefaultDrawing) {
         [self.layoutTool cleanLayout];
     }
@@ -473,3 +492,4 @@
 
 
 @end
+
