@@ -87,7 +87,7 @@
         self.useDefaultDrawing = YES;
         if (_completion) {
             self.completion();
-            _completion = nil;
+            //_completion = nil;
         }
     }
     else { //update text attributeds array
