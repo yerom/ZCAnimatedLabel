@@ -19,7 +19,7 @@
 @property (nonatomic, assign) BOOL animatingAppear; //we are during appear stage or not
 @property (nonatomic, strong) ZCCoreTextLayout *layoutTool;
 @property (nonatomic, assign) NSTimeInterval animationStarTime;
-@property (nonatomic, copy) void (^completion)();
+@property (nonatomic, copy) void (^completion)(void);
 
 @end
 
@@ -51,21 +51,21 @@
 - (void) commonInit
 {
     self.backgroundColor = [UIColor clearColor];
-    
+
     _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(timerTick:)];
     [_displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
     _displayLink.paused = YES;
-    
+
     _animationDuration = 1;
     _animationDelay = 0.1;
     _appearDirection = ZCAnimatedLabelAppearDirectionFromBottom;
     _layoutTool = [[ZCCoreTextLayout alloc] init];
     _onlyDrawDirtyArea = YES;
-    
+
     _useDefaultDrawing = YES;
     _text = @"";
     _font = [UIFont systemFontOfSize:15];
-    
+
     _debugTextBlockBounds = NO;
     _layerBased = NO;
 }
@@ -87,11 +87,11 @@
         self.useDefaultDrawing = YES;
         if (_completion) {
             self.completion();
-            //_completion = nil;
+            _completion = nil;
         }
     }
     else { //update text attributeds array
-        
+
         [self.layoutTool.textBlocks enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
             ZCTextBlock *textBlock = self.layoutTool.textBlocks[idx];
             NSUInteger sequence = self.animatingAppear ? idx : (self.layoutTool.textBlocks.count - idx - 1);
@@ -140,7 +140,7 @@
     for (CALayer *layer in self.layer.sublayers) {
         [toDelete addObject:layer];
     }
-    
+
     for (CALayer *layer in toDelete) {
         [layer removeFromSuperlayer];
     }
@@ -167,33 +167,33 @@
         _attributedString = [[NSAttributedString alloc] initWithString:self.text attributes:@{NSFontAttributeName : self.font}];
     }
     self.layoutTool.layerBased = self.layerBased;
-    
+
     if (self.layerBased) {
         [self _removeAllTextLayers];
     }
-    
+
     [self.layoutTool layoutWithAttributedString:self.attributedString constainedToSize:self.frame.size];
     //__block CGFloat maxDuration = 0;
     [self calculateAnimationDuration];
-    
+
     [self.layoutTool.textBlocks enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
         ZCTextBlock *textBlock = obj;
         [self textBlockAttributesInit:textBlock];
-        
+
         //        CGFloat duration = textBlock.duration > 0 ? textBlock.duration : self.animationDuration;
         //        CGFloat startDelay = textBlock.startDelay > 0 ? textBlock.startDelay : idx * self.animationDelay;
         //        CGFloat realStartDelay = startDelay + duration;
         //        if (realStartDelay > maxDuration) {
         //            maxDuration = realStartDelay;
         //        }
-        
+
         if (self.layerBased) {
             [self.layer addSublayer:textBlock.textBlockLayer];
         }
     }];
-    
+
     //self.animationDurationTotal = maxDuration;
-    
+
     if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 6.0) {
         [self invalidateIntrinsicContentSize]; //reset intrinsicContentSize
     }
@@ -293,7 +293,7 @@
     [self.layoutTool.textBlocks enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
         ZCTextBlock *textBlock = obj;
         [self textBlockAttributesInit:textBlock];
-        
+
         CGFloat duration = textBlock.duration > 0 ? textBlock.duration : self.animationDuration;
         CGFloat startDelay = textBlock.startDelay > 0 ? textBlock.startDelay : idx * self.animationDelay;
         CGFloat realStartDelay = startDelay + duration;
@@ -301,7 +301,7 @@
             maxDuration = realStartDelay;
         }
     }];
-    
+
     self.animationDurationTotal = maxDuration;
 }
 
@@ -317,7 +317,7 @@
     self.useDefaultDrawing = NO;
     self.displayLink.paused = NO;
     self.animationStarTime = 0;
-    
+
     _completion = completion;
     [self setNeedsDisplay];
 }
@@ -334,7 +334,7 @@
     self.useDefaultDrawing = NO;
     self.displayLink.paused = NO;
     self.animationStarTime = 0;
-    
+
     _completion = completion;
     [self setNeedsDisplay]; //draw all rects
 }
@@ -344,6 +344,7 @@
 {
     self.animationTime = 0;
     self.displayLink.paused = YES;
+    _completion = nil;
 }
 
 - (void) setDebugTextBlockBounds:(BOOL)drawsCharRect
@@ -383,7 +384,7 @@
     }
     CGContextRef context = UIGraphicsGetCurrentContext();
     CGContextSaveGState(context);
-    
+
     if (self.appearDirection == ZCAnimatedLabelAppearDirectionFromCenter) {
         CGContextTranslateCTM(context, CGRectGetMidX(textBlock.charRect), CGRectGetMidY(textBlock.charRect));
         CGContextScaleCTM(context, realProgress, realProgress);
@@ -420,11 +421,11 @@
 - (void) drawRect:(CGRect)rect
 {
     [super drawRect:rect];
-    
+
     if (self.layerBased) {
         return;
     }
-    
+
     if (self.debugRedraw) {
         CGContextRef context = UIGraphicsGetCurrentContext();
         CGFloat hue = ( arc4random() % 256 / 256.0 );
@@ -434,19 +435,19 @@
         CGContextSetFillColorWithColor(context, color.CGColor);
         CGContextFillRect(context, rect);
     }
-    
+
     for (ZCTextBlock *textBlock in self.layoutTool.textBlocks) {
         if (!CGRectIntersectsRect(rect, textBlock.charRect)) {
             continue; //skip this text redraw
         }
-        
+
         if (self.debugTextBlockBounds) {
             CGContextRef context = UIGraphicsGetCurrentContext();
             CGContextSetStrokeColorWithColor(context, [UIColor redColor].CGColor);
             CGContextAddRect(context, textBlock.charRect);
             CGContextStrokePath(context);
         }
-        
+
         if (self.useDefaultDrawing) {
             if (self.animatingAppear) {
                 [textBlock.derivedAttributedString drawInRect:textBlock.charRect];
@@ -461,7 +462,7 @@
             }
         }
     }
-    
+
     if (self.useDefaultDrawing) {
         [self.layoutTool cleanLayout];
     }
@@ -482,12 +483,12 @@
 
 - (void) appearStateLayerChangesForTextBlock: (ZCTextBlock *) textBlock
 {
-    
+
 }
 
 - (void) disappearLayerStateChangesForTextBlock: (ZCTextBlock *) textBlock
 {
-    
+
 }
 
 
