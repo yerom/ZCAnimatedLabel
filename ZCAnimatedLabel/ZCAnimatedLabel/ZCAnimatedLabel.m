@@ -339,6 +339,10 @@
     [self setNeedsDisplay]; //draw all rects
 }
 
+- (void) destroy
+{
+    [_displayLink removeFromRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
+}
 
 - (void) stopAnimation
 {
