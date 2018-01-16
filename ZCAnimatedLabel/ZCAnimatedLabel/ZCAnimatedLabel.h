@@ -98,6 +98,7 @@ typedef NS_ENUM(NSInteger, ZCAnimatedLabelAppearDirection)
 - (void) startDisappearAnimationWithCompletion:(void (^)())completion;
 
 - (void) stopAnimation;
+- (void) destroy;
 
 /**
  * One time init after the layout is done, use customValue to retain custom attributes
